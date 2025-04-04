@@ -1,0 +1,28 @@
+{
+  "name": "requirements-generator",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "要件定義書を.mdファイルで作成できるアプリケーション",
+  "dependencies": {
+    "file-saver": "^2.0.5",
+    "marked": "^15.0.7",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.5.3",
+    "tailwindcss": "^4.1.2",
+    "vite": "^6.2.5"
+  }
+}
