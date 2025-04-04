@@ -26,11 +26,11 @@ function App() {
     setLogs(prevLogs => [...prevLogs, { time: new Date().toLocaleTimeString(), message }]);
   };
 
-  // コンポーネントがマウントされたときに環境変数をチェック
+  // コンポーネントがマウントされたときに初期設定の確認
   useEffect(() => {
-    // 環境変数の状態をログに記録
-    addLog(`環境変数チェック: import.meta.env.ANTHROPIC_API_KEY ${import.meta.env.ANTHROPIC_API_KEY ? '設定済み' : '未設定'}`);
-    addLog(`環境変数チェック: import.meta.env.API_ENDPOINT ${import.meta.env.API_ENDPOINT ? '設定済み' : '未設定（デフォルト使用）'}`);
+    // API状態をログに記録
+    addLog('アプリケーション起動: サーバーレス関数を使用してAPIと通信します');
+    // APIのテストを行う場合はここにコードを追加
   }, []);
 
   const handleFormSubmit = (data) => {
@@ -68,22 +68,16 @@ function App() {
     addLog(`AI APIリクエスト送信開始: "${message}"`); 
 
     try {
-      // 環境変数が設定されているかチェック
-      if (!import.meta.env.ANTHROPIC_API_KEY) {
-        throw new Error('API Keyが設定されていません。環境変数ANTHROPIC_API_KEYを確認してください。');
-      }
-
-      // APIリクエストのURLを決定
-      const apiUrl = import.meta.env.API_ENDPOINT || '/api/generate-requirements';
+      // APIリクエストのURLを決定 - Netlifyのサーバーレス関数を使用
+      const apiUrl = '/.netlify/functions/generate-requirements';
       addLog(`APIエンドポイント: ${apiUrl}`);
       
-      // 実際のLLM APIリクエスト
+      // サーバーレス関数へのリクエスト
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': import.meta.env.ANTHROPIC_API_KEY,
-          'anthropic-version': '2023-06-01'
+          'Content-Type': 'application/json'
+          // 認証情報はサーバーレス関数内で処理するのでここには不要
         },
         body: JSON.stringify({
           messages: updatedMessages,
