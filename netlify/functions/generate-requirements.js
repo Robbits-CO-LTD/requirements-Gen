@@ -10,6 +10,17 @@ const MAX_TOKENS = 4000;
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const API_ENDPOINT = process.env.API_ENDPOINT || 'https://api.anthropic.com/v1/messages';
 
+// バックグラウンド処理用の結果保存ストレージ
+// 本番環境ではこれをデータベースに置き換えることを検討する
+// 現在はメモリ内ストレージとして実装（サーバー再起動で消失）
+const resultsStorage = {};
+
+// 他の関数からアクセスできるようにエクスポート
+exports.resultsStorage = resultsStorage;
+
+// バックグラウンドで処理中かどうかを追跡
+let isProcessingInBackground = false;
+
 // デバッグ用ログ関数
 const log = (message) => {
   console.log(`[generate-requirements] ${message}`);
@@ -69,6 +80,42 @@ const SYSTEM_PROMPT = `あなたは要件定義書作成のエキスパートで
 - プロジェクトの特性に基づいて、必要なセクションを追加したり、関連性の低いセクションは省略したりしても良い
 
 ユーザーからの追加情報や要求に基づいて、既存の要件定義書を適切に更新してください。これは反復的な改善プロセスの一部であり、要件は徐々に理解され、派生し、洗練されていくものです。`;
+
+// 初期テンプレート生成関数
+function generateInitialMarkdown(formData) {
+  const projectName = formData.projectName || 'プロジェクト名';
+  const projectOverview = formData.projectOverview || 'プロジェクトの概要';
+  const targetUsers = formData.targetUsers || '客先情報';
+  const mainFeatures = formData.mainFeatures || '主要機能';
+  const constraints = formData.constraints || '制約条件';
+  const timeline = formData.timeline || 'スケジュール';
+
+  return `# ${projectName} 要件定義書
+
+## プロジェクト概要
+${projectOverview}
+
+## 客先
+${targetUsers}
+
+## 主要機能
+${mainFeatures}
+
+## 制約条件
+${constraints}
+
+## スケジュール
+${timeline}
+
+## 注意
+これは初期テンプレートです。AIが詳細な要件定義書をバックグラウンドで生成しています。チャットにメッセージを送信すると、詳細な要件定義書が表示されます。
+`;
+}
+
+// メッセージIDを生成するユーティリティ関数
+function generateSessionId() {
+  return `req_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+}
 
 // Netlifyサーバーレス関数のハンドラー
 exports.handler = async (event, context) => {
@@ -135,56 +182,115 @@ exports.handler = async (event, context) => {
       });
     }
 
-    log('Claude APIリクエスト送信中...');
+    log('Claude APIリクエストをバックグラウンドで処理します...');
 
-    // Claude APIを呼び出す
-    const apiResponse = await fetch(API_ENDPOINT, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01'
-      },
-      body: JSON.stringify({
-        model: API_MODEL,
-        max_tokens: MAX_TOKENS,
-        system: SYSTEM_PROMPT,
-        messages: [
-          {
-            role: 'user',
-            content: prompt
+    // セッションIDを生成（結果を取得するためのID）
+    const sessionId = generateSessionId();
+    
+    // 初期マークダウンを生成
+    const initialMarkdown = generateInitialMarkdown(formData);
+    
+    // 初期状態をストレージに保存
+    resultsStorage[sessionId] = {
+      status: 'processing',
+      timestamp: Date.now(),
+      markdown: initialMarkdown,
+      message: '要件定義書を生成中です...',
+      formData: formData
+    };
+    
+    // バックグラウンドでAPIリクエストを処理
+    if (!isProcessingInBackground) {
+      isProcessingInBackground = true;
+      
+      // バックグラウンドで処理を開始（レスポンスを待たずに即座に帰す）
+      setTimeout(async () => {
+        try {
+          log(`バックグラウンド処理開始: セッションID ${sessionId}`);
+          
+          // Claude APIを呼び出す
+          const apiResponse = await fetch(API_ENDPOINT, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-api-key': ANTHROPIC_API_KEY,
+              'anthropic-version': '2023-06-01'
+            },
+            body: JSON.stringify({
+              model: API_MODEL,
+              max_tokens: MAX_TOKENS,
+              system: SYSTEM_PROMPT,
+              messages: [
+                {
+                  role: 'user',
+                  content: prompt
+                }
+              ],
+              temperature: 0.7
+            })
+          });
+          
+          // エラーチェック
+          if (!apiResponse.ok) {
+            const errorText = await apiResponse.text();
+            log(`バックグラウンド処理 Claude APIエラー: ${apiResponse.status} - ${errorText}`);
+            
+            // エラー情報をストレージに保存
+            resultsStorage[sessionId] = {
+              ...resultsStorage[sessionId],
+              status: 'error',
+              error: `Claude API エラー (${apiResponse.status})`,
+              details: errorText,
+              timestamp: Date.now()
+            };
+            
+          } else {
+            // APIレスポンスを処理
+            const data = await apiResponse.json();
+            log('バックグラウンド処理 Claude API応答受信完了');
+            
+            // APIレスポンスからマークダウン部分を抽出
+            const generatedMarkdown = data.content?.[0]?.text || '';
+            log(`バックグラウンド処理完了: マークダウン生成成功 (長さ: ${generatedMarkdown.length})`);
+            
+            // 結果をストレージに保存
+            resultsStorage[sessionId] = {
+              ...resultsStorage[sessionId],
+              status: 'completed',
+              markdown: generatedMarkdown,
+              message: '要件定義書が生成されました',
+              timestamp: Date.now()
+            };
           }
-        ],
-        temperature: 0.7
-      })
-    });
-
-    // エラーチェック
-    if (!apiResponse.ok) {
-      const errorText = await apiResponse.text();
-      log(`Claude APIエラー: ${apiResponse.status} - ${errorText}`);
-      return {
-        statusCode: 500,
-        body: JSON.stringify({ 
-          error: `Claude API エラー (${apiResponse.status})`, 
-          details: errorText 
-        })
-      };
+        } catch (error) {
+          log(`バックグラウンド処理エラー: ${error.message}`);
+          
+          // エラー情報をストレージに保存
+          resultsStorage[sessionId] = {
+            ...resultsStorage[sessionId],
+            status: 'error',
+            error: error.message,
+            timestamp: Date.now()
+          };
+        }
+        
+        // バックグラウンド処理完了を記録
+        isProcessingInBackground = false;
+      }, 0);
     }
-
-    // APIレスポンスを処理
-    const data = await apiResponse.json();
-    log('Claude API応答受信完了');
-
-    // APIレスポンスからマークダウン部分を抽出
-    const generatedMarkdown = data.content?.[0]?.text || '';
+    
+    // クライアントに即座に初期レスポンスを返す
+    log(`即座に初期レスポンスを返します（セッションID: ${sessionId}）`);
+    const generatedMarkdown = initialMarkdown;
     
     // クライアントにレスポンスを返す
     return {
       statusCode: 200,
       body: JSON.stringify({
-        message: '要件定義書を更新しました。さらに詳細を追加するには、具体的な質問や要望をお知らせください。',
-        markdown: generatedMarkdown
+        markdown: generatedMarkdown,
+        message: '要件定義書を生成中です...',
+        sessionId: sessionId,
+        status: 'processing'
       })
     };
     

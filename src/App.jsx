@@ -19,6 +19,8 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [logs, setLogs] = useState([]);
+  const [sessionId, setSessionId] = useState(null);
+  const [pollingInterval, setPollingInterval] = useState(null);
 
   // ログを追加する関数
   const addLog = (message) => {
@@ -31,7 +33,15 @@ function App() {
     // API状態をログに記録
     addLog('アプリケーション起動: サーバーレス関数を使用してAPIと通信します');
     // APIのテストを行う場合はここにコードを追加
-  }, []);
+    
+    // クリーンアップ関数
+    return () => {
+      // ポーリングインターバルをクリア
+      if (pollingInterval) {
+        clearInterval(pollingInterval);
+      }
+    };
+  }, [pollingInterval]);
 
   const handleFormSubmit = async (data) => {
     setFormData(data);
@@ -53,12 +63,12 @@ function App() {
     
     // 初期データをもとにLLMを呼び出し要件定義書を生成
     setTimeout(async () => {
+      // 初期メッセージを作成（変数をスコープの最上部に移動）
+      const initialMessage = `このプロジェクトの要件定義書を作成してください。`;
+      
       try {
         setLoading(true);
         addLog('初期要件定義書を生成中...');
-        
-        // 初期メッセージを作成
-        const initialMessage = `このプロジェクトの要件定義書を作成してください。`;
         
         // LLM呼び出し用メッセージに追加
         const updatedMessages = [
@@ -92,18 +102,38 @@ function App() {
         const responseData = await response.json();
         addLog('APIレスポンス受信完了');
         
-        // AIの応答を追加
-        const systemResponse = { 
-          role: 'system', 
-          content: responseData.message || '要件定義書を生成しました。他に詳細を追加したいポイントがあればお知らせください。' 
-        };
-        
-        setChatMessages([...updatedMessages, systemResponse]);
-        
-        // 要件定義書の内容を更新
-        if (responseData.markdown) {
-          setMarkdownContent(responseData.markdown);
-          addLog('要件定義書を生成しました');
+        // セッションIDを保存し、ポーリングを開始
+        if (responseData.sessionId && responseData.status === 'processing') {
+          setSessionId(responseData.sessionId);
+          addLog(`バックグラウンド処理開始: セッションID ${responseData.sessionId}`);
+          
+          // 初期テンプレートを表示
+          if (responseData.markdown) {
+            setMarkdownContent(responseData.markdown);
+            addLog('初期テンプレートを表示しました（バックグラウンドで詳細生成中）');
+          }
+          
+          // 初期メッセージを追加
+          const processingResponse = { 
+            role: 'system', 
+            content: '要件定義書を生成中です...しばらくお待ちください。' 
+          };
+          
+          setChatMessages([...updatedMessages, processingResponse]);
+        } else {
+          // 通常の応答処理（バックグラウンド処理なしの場合のフォールバック）
+          const systemResponse = { 
+            role: 'system', 
+            content: responseData.message || '要件定義書を生成しました。他に詳細を追加したいポイントがあればお知らせください。' 
+          };
+          
+          setChatMessages([...updatedMessages, systemResponse]);
+          
+          // 要件定義書の内容を更新
+          if (responseData.markdown) {
+            setMarkdownContent(responseData.markdown);
+            addLog('要件定義書を生成しました');
+          }
         }
       } catch (err) {
         console.error('初期要件定義書生成エラー:', err);
@@ -122,6 +152,113 @@ function App() {
       }
     }, 500); // 少し遅延を入れて画面遷移後に実行
   };
+
+  // バックグラウンド処理のステータスを確認する関数
+  const checkProcessingStatus = async () => {
+    if (!sessionId) return;
+    
+    try {
+      addLog(`ステータス確認中: セッションID ${sessionId}`);
+      
+      const statusUrl = '/.netlify/functions/check-status';
+      const response = await fetch(statusUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ sessionId })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.text();
+        throw new Error(`ステータス確認エラー (${response.status}): ${errorData}`);
+      }
+      
+      const statusData = await response.json();
+      addLog(`ステータス確認結果: ${statusData.status}`);
+      
+      // ステータスが完了またはエラーの場合はポーリングを停止
+      if (statusData.status === 'completed' || statusData.status === 'error') {
+        // ポーリングを停止
+        if (pollingInterval) {
+          clearInterval(pollingInterval);
+          setPollingInterval(null);
+          addLog(`ポーリング停止: ${statusData.status === 'completed' ? '処理完了' : 'エラー発生'}`);
+        }
+        
+        if (statusData.status === 'completed') {
+          // 完了した場合は結果を表示
+          setMarkdownContent(statusData.markdown);
+          setLoading(false);
+          
+          // チャットメッセージを更新
+          setChatMessages(prev => {
+            // 処理中メッセージを完了メッセージに置き換え
+            const newMessages = [...prev];
+            const lastMessage = newMessages.pop(); // 最後のメッセージを取得
+            
+            newMessages.push({
+              role: 'system',
+              content: '要件定義書が生成されました。詳細の追加や修正について、お気軽にお尋ねください。'
+            });
+            
+            return newMessages;
+          });
+          
+          addLog('要件定義書生成完了');
+        } else {
+          // エラーの場合
+          setError(statusData.error || '不明なエラーが発生しました');
+          setLoading(false);
+          
+          // エラーメッセージをチャットに表示
+          setChatMessages(prev => {
+            const newMessages = [...prev];
+            const lastMessage = newMessages.pop(); // 最後のメッセージを取得
+            
+            newMessages.push({
+              role: 'system',
+              content: `エラーが発生しました: ${statusData.error || '不明なエラー'}`
+            });
+            
+            return newMessages;
+          });
+          
+          addLog(`エラー発生: ${statusData.error || '不明なエラー'}`);
+        }
+      }
+    } catch (error) {
+      console.error('ステータス確認エラー:', error);
+      addLog(`ステータス確認エラー: ${error.message}`);
+    }
+  };
+  
+  // ポーリング処理を追加するエフェクト
+  useEffect(() => {
+    // セッションIDが存在していて、ポーリングが設定されていない場合に開始
+    if (sessionId && !pollingInterval) {
+      addLog(`ポーリング開始: セッションID ${sessionId}`);
+      
+      // 3秒ごとに状態確認
+      const interval = setInterval(async () => {
+        try {
+          await checkProcessingStatus();
+        } catch (error) {
+          console.error('ポーリングエラー:', error);
+          addLog(`ポーリングエラー: ${error.message}`);
+        }
+      }, 3000);
+      
+      setPollingInterval(interval);
+    }
+    
+    // クリーンアップ関数
+    return () => {
+      if (pollingInterval) {
+        clearInterval(pollingInterval);
+      }
+    };
+  }, [sessionId]);
 
   const handleChatSend = async (message) => {
     // エラー状態をリセット
