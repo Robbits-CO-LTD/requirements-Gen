@@ -1,64 +1,50 @@
 // Netlifyサーバーレス関数 - 要件定義書生成結果の確認API
-// generate-requirements.jsで開始したバックグラウンド処理の状態を確認します
+// 注意: この機能はgenerate-requirements.jsに統合されました
+// このファイルは後方互換性のためのリダイレクトのみを提供します
 
-// 共有ストレージ（メモリ）へのアクセス
-// 注意: Netlify Functionsはステートレスなので、本番環境ではデータベースを使用する必要があります
-const { resultsStorage } = require('./generate-requirements');
-
-// デバッグ用ログ関数
-const log = (message) => {
-  console.log(`[check-status] ${message}`);
+// 詳細なデバッグ用ログ関数
+const log = (message, type = 'info') => {
+  const timestamp = new Date().toISOString();
+  const prefix = type === 'error' ? '[ERROR]' : '[INFO]';
+  console.log(`${prefix} [${timestamp}] [check-status] ${message}`);
 };
 
 // Netlifyサーバーレス関数のハンドラー
 exports.handler = async (event, context) => {
+  log(`チェックステータスリダイレクト: パス=${event.path}, メソッド=${event.httpMethod}`);
+  
   try {
-    // リクエストのメソッドを確認
-    if (event.httpMethod !== 'POST') {
-      return {
-        statusCode: 405,
-        body: JSON.stringify({ error: 'メソッドが許可されていません' })
-      };
-    }
+    // generate-requirements.jsの関数にリクエストを転送
+    // require関数は常に同じインスタンスを返すので、同じプロセス内で実行される
+    const generateRequirementsHandler = require('./generate-requirements').handler;
     
-    // リクエストボディからセッションIDを取得
-    const params = JSON.parse(event.body);
-    const { sessionId } = params;
+    log('リクエストをgenerate-requirements.jsのハンドラに転送します');
     
-    log(`ステータス確認リクエスト受信: セッションID ${sessionId}`);
-    
-    if (!sessionId) {
-      return {
-        statusCode: 400,
-        body: JSON.stringify({ error: 'セッションIDが必要です' })
-      };
-    }
-    
-    // 対応する結果が存在するか確認
-    if (!resultsStorage || !resultsStorage[sessionId]) {
-      log(`セッションが見つかりません: ${sessionId}`);
-      return {
-        statusCode: 404,
-        body: JSON.stringify({ 
-          error: '該当するセッションが見つかりませんでした',
-          status: 'not_found' 
-        })
-      };
-    }
-    
-    const result = resultsStorage[sessionId];
-    log(`ステータス確認結果: ${result.status} (セッションID: ${sessionId})`);
-    
-    // 結果を返す
-    return {
-      statusCode: 200,
-      body: JSON.stringify(result)
+    // event オブジェクトにパス情報を追加して、check-status 処理が実行されるようにする
+    const modifiedEvent = {
+      ...event,
+      // パスを明示的に設定して check-status として処理されるようにする
+      path: event.path.replace(/\/[^\/]+$/, '/check-status')
     };
+    
+    log(`転送リクエスト: 修正されたパス=${modifiedEvent.path}`);
+    
+    // generate-requirements.jsのハンドラーを呼び出し、結果をそのまま返す
+    return await generateRequirementsHandler(modifiedEvent, context);
+    
   } catch (error) {
-    log(`ステータス確認エラー: ${error.message}`);
+    log(`リダイレクトエラー: ${error.message}`, 'error');
+    if (error.stack) {
+      console.error(`[ERROR] Stack trace:`, error.stack);
+    }
+    
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: 'サーバーエラーが発生しました' })
+      body: JSON.stringify({ 
+        error: `サーバーエラー: ${error.message}`,
+        message: 'check-status機能はgenerate-requirements.jsに統合されましたが、リダイレクト中にエラーが発生しました',
+        timestamp: new Date().toISOString()
+      })
     };
   }
 };

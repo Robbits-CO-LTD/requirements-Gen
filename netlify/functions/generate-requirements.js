@@ -1,5 +1,6 @@
 // Netlifyサーバーレス関数 - 要件定義書生成API
 // Claude APIを呼び出して要件定義書を生成します
+// 注意: このファイルはgenerate-requirementsとcheck-statusの両方の機能を含む統合ファイルです
 
 // Claude API設定
 const API_MODEL = "claude-3-sonnet-20240229";
@@ -15,15 +16,25 @@ const API_ENDPOINT = process.env.API_ENDPOINT || 'https://api.anthropic.com/v1/m
 // 現在はメモリ内ストレージとして実装（サーバー再起動で消失）
 const resultsStorage = {};
 
-// 他の関数からアクセスできるようにエクスポート
-exports.resultsStorage = resultsStorage;
-
 // バックグラウンドで処理中かどうかを追跡
 let isProcessingInBackground = false;
 
-// デバッグ用ログ関数
-const log = (message) => {
-  console.log(`[generate-requirements] ${message}`);
+// 詳細なデバッグ用ログ関数
+const log = (message, type = 'info') => {
+  const timestamp = new Date().toISOString();
+  const prefix = type === 'error' ? '[ERROR]' : '[INFO]';
+  console.log(`${prefix} [${timestamp}] [generate-requirements] ${message}`);
+};
+
+// エラーログ用の特殊関数
+const logError = (message, error = null) => {
+  log(message, 'error');
+  if (error) {
+    console.error(`[ERROR] Error details:`, error);
+    if (error.stack) {
+      console.error(`[ERROR] Stack trace:`, error.stack);
+    }
+  }
 };
 
 // システムプロンプト - 要件定義書作成のエキスパート
@@ -117,10 +128,114 @@ function generateSessionId() {
   return `req_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 }
 
-// Netlifyサーバーレス関数のハンドラー
+// Netlifyサーバーレス関数のハンドラー - パスに基づいて適切な処理を実行
 exports.handler = async (event, context) => {
+  // リクエストの詳細情報をログに記録
+  log(`リクエスト受信: パス=${event.path}, メソッド=${event.httpMethod}, ヘッダー=${JSON.stringify(event.headers)}`);
+  
+  try {
+    // パスからどの機能が呼び出されているかを判断
+    const pathParts = event.path.split('/');
+    const functionName = pathParts[pathParts.length - 1];
+    log(`関数名を解析: ${functionName}`);
+    
+    // check-statusへのリクエストを処理
+    if (functionName === 'check-status') {
+      log('ステータス確認関数を実行します');
+      return await handleCheckStatus(event, context);
+    }
+    
+    // デフォルトは要件定義書生成処理
+    log('要件定義書生成関数を実行します');
+    return await handleGenerateRequirements(event, context);
+  } catch (error) {
+    logError(`ルーティングエラー: ${error.message}`, error);
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ 
+        error: `サーバーエラー: ${error.message}`,
+        path: event.path,
+        timestamp: new Date().toISOString()
+      })
+    };
+  }
+};
+
+// ステータス確認用ハンドラー（元々check-status.jsに実装されていた機能）
+async function handleCheckStatus(event, context) {
+  log('ステータス確認処理を開始');
+  
+  try {
+    // リクエストのメソッドを確認
+    if (event.httpMethod !== 'POST') {
+      log(`不正なメソッド: ${event.httpMethod} (POSTが必要)`);
+      return {
+        statusCode: 405,
+        body: JSON.stringify({ error: 'メソッドが許可されていません' })
+      };
+    }
+    
+    // リクエストボディからセッションIDを取得
+    const params = JSON.parse(event.body);
+    const { sessionId } = params;
+    
+    log(`ステータス確認リクエスト受信: セッションID ${sessionId}`);
+    
+    if (!sessionId) {
+      log('セッションIDが指定されていません');
+      return {
+        statusCode: 400,
+        body: JSON.stringify({ error: 'セッションIDが必要です' })
+      };
+    }
+    
+    // メモリ内ストレージのデバッグ情報
+    log(`現在のストレージ状態: ${Object.keys(resultsStorage).length}件のセッション, キー: ${Object.keys(resultsStorage).join(', ')}`);
+    
+    // 対応する結果が存在するか確認
+    if (!resultsStorage || !resultsStorage[sessionId]) {
+      log(`セッションが見つかりません: ${sessionId}`);
+      return {
+        statusCode: 404,
+        body: JSON.stringify({ 
+          error: '該当するセッションが見つかりませんでした',
+          status: 'not_found',
+          sessionId: sessionId,
+          timestamp: new Date().toISOString(),
+          availableSessions: Object.keys(resultsStorage)
+        })
+      };
+    }
+    
+    const result = resultsStorage[sessionId];
+    log(`ステータス確認結果: ${result.status} (セッションID: ${sessionId})`);
+    
+    // 結果を返す
+    return {
+      statusCode: 200,
+      body: JSON.stringify({
+        ...result,
+        timestamp: new Date().toISOString(),
+        _debug: { functionName: 'check-status' }
+      })
+    };
+  } catch (error) {
+    logError(`ステータス確認エラー: ${error.message}`, error);
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ 
+        error: `サーバーエラー: ${error.message}`,
+        timestamp: new Date().toISOString(),
+        debug: { stack: error.stack }
+      })
+    };
+  }
+}
+
+// 要件定義書生成用ハンドラー（元々のgenerate-requirements.jsのメイン処理）
+async function handleGenerateRequirements(event, context) {
   // デバッグ情報
-  log(`関数実行開始: ${new Date().toISOString()}`);
+  log(`要件定義書生成関数実行開始: ${new Date().toISOString()}`);
   log(`環境: API_KEY=${ANTHROPIC_API_KEY ? '設定済み' : '未設定'}`);
   log(`API_ENDPOINT: ${API_ENDPOINT}`);
 
@@ -129,14 +244,26 @@ exports.handler = async (event, context) => {
     log('不正なメソッド: ' + event.httpMethod);
     return {
       statusCode: 405,
-      body: JSON.stringify({ error: 'メソッドが許可されていません' })
+      body: JSON.stringify({ 
+        error: 'メソッドが許可されていません',
+        method: event.httpMethod,
+        requiredMethod: 'POST',
+        timestamp: new Date().toISOString()
+      })
     };
   }
 
   try {
     // リクエストボディをパース
+    log('リクエストボディをパース中...');
     const body = JSON.parse(event.body);
     const { messages, formData, currentMarkdown } = body;
+    log(`パース完了: メッセージ数=${messages?.length || 0}, フォームデータ=${formData ? '存在' : '未指定'}, マークダウン=${currentMarkdown ? '存在' : '未指定'}`);
+    
+    // デバッグ情報として本文の一部をログに記録（秘密情報を除外）
+    if (formData) {
+      log(`プロジェクト情報: ${formData.projectName || 'なし'} (${formData.projectOverview ? formData.projectOverview.substring(0, 30) + '...' : 'なし'})`);
+    }
 
     // 入力検証
     if (!messages || !Array.isArray(messages)) {
@@ -183,6 +310,7 @@ exports.handler = async (event, context) => {
     }
 
     log('Claude APIリクエストをバックグラウンドで処理します...');
+    log(`処理モード: バックグラウンド=${!isProcessingInBackground ? '開始' : '既に処理中'}`);
 
     // セッションIDを生成（結果を取得するためのID）
     const sessionId = generateSessionId();
@@ -196,8 +324,16 @@ exports.handler = async (event, context) => {
       timestamp: Date.now(),
       markdown: initialMarkdown,
       message: '要件定義書を生成中です...',
-      formData: formData
+      formData: formData,
+      debug: {
+        createdAt: new Date().toISOString(),
+        function: 'generate-requirements',
+        promptLength: prompt ? prompt.length : 0
+      }
     };
+    
+    // ストレージ更新をログに記録
+    log(`ストレージ更新: セッションID=${sessionId}, 状態=processing, ストレージ内セッション数=${Object.keys(resultsStorage).length}`);
     
     // バックグラウンドでAPIリクエストを処理
     if (!isProcessingInBackground) {
@@ -206,7 +342,8 @@ exports.handler = async (event, context) => {
       // バックグラウンドで処理を開始（レスポンスを待たずに即座に帰す）
       setTimeout(async () => {
         try {
-          log(`バックグラウンド処理開始: セッションID ${sessionId}`);
+          log(`バックグラウンド処理開始: セッションID=${sessionId}, タイムスタンプ=${new Date().toISOString()}`);
+          log(`バックグラウンド処理の詳細: モデル=${API_MODEL}, 最大トークン=${MAX_TOKENS}, 温度=${0.7}`);
           
           // Claude APIを呼び出す
           const apiResponse = await fetch(API_ENDPOINT, {
@@ -241,8 +378,17 @@ exports.handler = async (event, context) => {
               status: 'error',
               error: `Claude API エラー (${apiResponse.status})`,
               details: errorText,
-              timestamp: Date.now()
+              timestamp: Date.now(),
+              debug: {
+                ...(resultsStorage[sessionId].debug || {}),
+                errorTimestamp: new Date().toISOString(),
+                errorType: 'api_response_error',
+                httpStatus: apiResponse.status
+              }
             };
+            
+            // エラー状態の詳細ログ
+            logError(`Claude APIエラー詳細: ステータス=${apiResponse.status}, エラー=${errorText}`);
             
           } else {
             // APIレスポンスを処理
@@ -259,8 +405,17 @@ exports.handler = async (event, context) => {
               status: 'completed',
               markdown: generatedMarkdown,
               message: '要件定義書が生成されました',
-              timestamp: Date.now()
+              timestamp: Date.now(),
+              debug: {
+                ...(resultsStorage[sessionId].debug || {}),
+                completedAt: new Date().toISOString(),
+                markdownLength: generatedMarkdown.length,
+                processingTimeMs: Date.now() - resultsStorage[sessionId].timestamp
+              }
             };
+            
+            // 完了状態の詳細ログ
+            log(`要件定義書生成完了: セッションID=${sessionId}, マークダウン長=${generatedMarkdown.length}文字, 処理時間=${Date.now() - resultsStorage[sessionId].timestamp}ms`);
           }
         } catch (error) {
           log(`バックグラウンド処理エラー: ${error.message}`);
@@ -270,8 +425,17 @@ exports.handler = async (event, context) => {
             ...resultsStorage[sessionId],
             status: 'error',
             error: error.message,
-            timestamp: Date.now()
+            timestamp: Date.now(),
+            debug: {
+              ...(resultsStorage[sessionId].debug || {}),
+              errorTimestamp: new Date().toISOString(),
+              errorType: 'processing_error',
+              errorStack: error.stack
+            }
           };
+          
+          // エラー状態の詳細ログ
+          logError(`バックグラウンド処理エラー詳細: セッションID=${sessionId}, エラー=${error.message}`, error);
         }
         
         // バックグラウンド処理完了を記録
@@ -280,7 +444,8 @@ exports.handler = async (event, context) => {
     }
     
     // クライアントに即座に初期レスポンスを返す
-    log(`即座に初期レスポンスを返します（セッションID: ${sessionId}）`);
+    log(`即座に初期レスポンスを返します（セッションID: ${sessionId}, タイムスタンプ: ${new Date().toISOString()}）`);
+    log(`ストレージ状態: ${Object.keys(resultsStorage).length}件のセッション, 最新セッション: ${sessionId}`);
     const generatedMarkdown = initialMarkdown;
     
     // クライアントにレスポンスを返す
@@ -290,19 +455,29 @@ exports.handler = async (event, context) => {
         markdown: generatedMarkdown,
         message: '要件定義書を生成中です...',
         sessionId: sessionId,
-        status: 'processing'
+        status: 'processing',
+        timestamp: new Date().toISOString(),
+        _debug: { 
+          functionName: 'generate-requirements',
+          mode: 'background_processing' 
+        }
       })
     };
     
   } catch (error) {
     // エラー処理
-    log(`要件定義生成エラー: ${error.message}`);
-    log(error.stack);
+    logError(`要件定義生成エラー: ${error.message}`, error);
     
     return {
       statusCode: 500,
       body: JSON.stringify({ 
-        error: `サーバーエラー: ${error.message}` 
+        error: `サーバーエラー: ${error.message}`,
+        timestamp: new Date().toISOString(),
+        debug: { 
+          errorType: 'handler_error',
+          stack: error.stack,
+          functionName: 'generate-requirements' 
+        }
       })
     };
   }
