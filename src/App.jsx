@@ -33,7 +33,7 @@ function App() {
     // APIのテストを行う場合はここにコードを追加
   }, []);
 
-  const handleFormSubmit = (data) => {
+  const handleFormSubmit = async (data) => {
     setFormData(data);
     
     // フォームデータを元に初期Markdownを生成
@@ -48,7 +48,79 @@ function App() {
       }
     ]);
     
+    // 画面遷移
     setStep(2);
+    
+    // 初期データをもとにLLMを呼び出し要件定義書を生成
+    setTimeout(async () => {
+      try {
+        setLoading(true);
+        addLog('初期要件定義書を生成中...');
+        
+        // 初期メッセージを作成
+        const initialMessage = `このプロジェクトの要件定義書を作成してください。`;
+        
+        // LLM呼び出し用メッセージに追加
+        const updatedMessages = [
+          ...chatMessages,
+          { role: 'user', content: initialMessage }
+        ];
+        
+        // サーバーレス関数のエンドポイント
+        const apiUrl = '/.netlify/functions/generate-requirements';
+        addLog(`初期要件定義APIリクエスト送信: ${apiUrl}`);
+        
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            messages: updatedMessages,
+            formData: data,
+            currentMarkdown: initialMarkdown
+          })
+        });
+        
+        addLog(`APIレスポンスステータス: ${response.status}`);
+        
+        if (!response.ok) {
+          const errorData = await response.text();
+          throw new Error(`APIエラー (${response.status}): ${errorData}`);
+        }
+        
+        const responseData = await response.json();
+        addLog('APIレスポンス受信完了');
+        
+        // AIの応答を追加
+        const systemResponse = { 
+          role: 'system', 
+          content: responseData.message || '要件定義書を生成しました。他に詳細を追加したいポイントがあればお知らせください。' 
+        };
+        
+        setChatMessages([...updatedMessages, systemResponse]);
+        
+        // 要件定義書の内容を更新
+        if (responseData.markdown) {
+          setMarkdownContent(responseData.markdown);
+          addLog('要件定義書を生成しました');
+        }
+      } catch (err) {
+        console.error('初期要件定義書生成エラー:', err);
+        addLog(`エラー発生: ${err.message}`);
+        setError(err.message);
+        
+        // エラーメッセージをチャットに表示
+        const errorResponse = {
+          role: 'system',
+          content: `要件定義書生成中にエラーが発生しました: ${err.message}`
+        };
+        
+        setChatMessages([...chatMessages, { role: 'user', content: initialMessage }, errorResponse]);
+      } finally {
+        setLoading(false);
+      }
+    }, 500); // 少し遅延を入れて画面遷移後に実行
   };
 
   const handleChatSend = async (message) => {

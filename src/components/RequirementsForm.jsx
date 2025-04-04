@@ -33,7 +33,7 @@ const RequirementsForm = ({ onSubmit }) => {
     }
     
     if (!formData.targetUsers.trim()) {
-      newErrors.targetUsers = '対象ユーザーは必須です';
+      newErrors.targetUsers = '客先は必須です';
     }
     
     if (!formData.mainFeatures.trim()) {
@@ -88,14 +88,14 @@ const RequirementsForm = ({ onSubmit }) => {
         
         <div className="mb-4">
           <label className="block text-gray-700 mb-1">
-            対象ユーザー <span className="text-red-500">*</span>
+            客先 <span className="text-red-500">*</span>
           </label>
           <textarea
             name="targetUsers"
             value={formData.targetUsers}
             onChange={handleChange}
             className={`form-input h-20 ${errors.targetUsers ? 'border-red-500' : ''}`}
-            placeholder="例: 20代〜40代の営業担当者、管理者など"
+            placeholder="例: 株式会社○○、▲▲工業など"
           ></textarea>
           {errors.targetUsers && <p className="text-red-500 text-sm mt-1">{errors.targetUsers}</p>}
         </div>
