@@ -410,6 +410,7 @@ ${data.timeline}
         <RequirementsForm onSubmit={handleFormSubmit} />
       ) : (
         <>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <ChatInterface 
@@ -422,7 +423,20 @@ ${data.timeline}
             <div>
               <MarkdownPreview 
                 content={markdownContent} 
-                onDownload={downloadMarkdown} 
+                onDownload={downloadMarkdown}
+                onBack={() => {
+                  setStep(1);
+                  // ポーリングが正確に停止しない根本原因の対策としてセッションリセットも行う
+                  if (pollingInterval) {
+                    clearInterval(pollingInterval);
+                    setPollingInterval(null);
+                  }
+                  // セッションIDもクリアしてポーリングが再開しないようにする
+                  setSessionId(null);
+                  // クライアントサイドフラグもリセット
+                  window._pollingCompleted = true;
+                  addLog('最初の画面に戻りました。ポーリングとセッションを終了しました。');
+                }}
               />
             </div>
           </div>
