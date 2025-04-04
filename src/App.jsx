@@ -403,15 +403,15 @@ ${data.timeline}
   };
 
   return (
-    <div className="container mx-auto p-4">
-      <h1 className="text-3xl font-bold text-center my-6">要件定義書ジェネレーター</h1>
+    <div className="container mx-auto px-4 py-8 max-w-5xl relative">
+      <h1 className="text-3xl font-bold text-center mb-8 text-gray-800">要件定義書ジェネレーター</h1>
       
       {step === 1 ? (
         <RequirementsForm onSubmit={handleFormSubmit} />
       ) : (
         <>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <ChatInterface 
                 messages={chatMessages} 
@@ -442,9 +442,14 @@ ${data.timeline}
           </div>
           
           {/* ログ表示エリア */}
-          <div className="mt-8 bg-gray-100 p-4 rounded-lg">
-            <h3 className="text-lg font-semibold mb-2">API通信ログ</h3>
-            <div className="bg-gray-800 text-green-400 p-3 rounded font-mono text-sm overflow-auto max-h-40">
+          <div className="mt-10 bg-gray-50 p-4 rounded-lg shadow-sm border border-gray-100">
+            <h3 className="text-base font-medium text-gray-700 mb-3 flex items-center">
+              <svg className="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              API通信ログ
+            </h3>
+            <div className="bg-gray-900 text-green-400 p-3 rounded-md font-mono text-xs leading-relaxed overflow-auto max-h-32 border border-gray-800">
               {logs.length === 0 ? (
                 <p>ログはまだありません</p>
               ) : (
