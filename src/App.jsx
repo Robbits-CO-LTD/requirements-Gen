@@ -191,6 +191,13 @@ function App() {
           addLog(`ポーリング停止: ${statusData.status === 'completed' ? '処理完了' : 'エラー発生'}`);
         }
         
+        // さらにセッションIDもクリアして、ポーリングメカニズムが再開しないようにする
+        setSessionId(null);
+        addLog('セッションIDをクリア: ポーリングの完全終了');
+        
+        // ポーリング終了フラグを設定して二重実行を防止
+        window._pollingCompleted = true;
+        
         if (statusData.status === 'completed') {
           // 完了した場合は結果を表示
           setMarkdownContent(statusData.markdown);
@@ -240,17 +247,41 @@ function App() {
   
   // ポーリング処理を追加するエフェクト
   useEffect(() => {
+    // 既に完了している場合はポーリングを開始しない
+    if (window._pollingCompleted) {
+      addLog('既にポーリングは完了しています。新規ポーリングは開始しません');
+      return;
+    }
+    
     // セッションIDが存在していて、ポーリングが設定されていない場合に開始
     if (sessionId && !pollingInterval) {
       addLog(`ポーリング開始: セッションID ${sessionId}`);
       
+      // ポーリング回数を追跡するカウンター
+      let pollCount = 0;
+      const maxPolls = 20; // 最大ポーリング回数（安全装置）
+      
       // 3秒ごとに状態確認
       const interval = setInterval(async () => {
         try {
+          // 最大ポーリング回数に達した場合は停止
+          if (pollCount >= maxPolls) {
+            addLog(`最大ポーリング回数(${maxPolls})に到達: ポーリングを停止します`);
+            clearInterval(interval);
+            setPollingInterval(null);
+            setSessionId(null);
+            window._pollingCompleted = true;
+            return;
+          }
+          
+          pollCount++;
           await checkProcessingStatus();
         } catch (error) {
           console.error('ポーリングエラー:', error);
           addLog(`ポーリングエラー: ${error.message}`);
+          
+          // エラーが発生した場合もカウントを増やす
+          pollCount++;
         }
       }, 3000);
       
@@ -263,7 +294,7 @@ function App() {
         clearInterval(pollingInterval);
       }
     };
-  }, [sessionId]);
+  }, [sessionId, pollingInterval]);
 
   const handleChatSend = async (message) => {
     // エラー状態をリセット
