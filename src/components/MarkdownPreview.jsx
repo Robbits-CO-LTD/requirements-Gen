@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { marked } from 'marked';
 
+// GitHubスタイルのMarkdownプレビューコンポーネント
 const MarkdownPreview = ({ content, onDownload, onBack }) => {
   const [html, setHtml] = useState('');
 
@@ -10,39 +11,46 @@ const MarkdownPreview = ({ content, onDownload, onBack }) => {
   }, [content]);
 
   return (
-    <div className="bg-white rounded-lg shadow-sm h-full flex flex-col">
-      <div className="p-4 border-b flex justify-between items-center">
-        <h2 className="text-xl font-semibold">要件定義書プレビュー</h2>
+    <div className="border border-gray-200 rounded-md shadow-sm h-full flex flex-col overflow-hidden bg-white relative">
+      {/* GitHub風ヘッダー */}
+      <div className="bg-gray-50 p-3 border-b border-gray-200 flex justify-between items-center sticky top-0">
+        <div className="flex items-center">
+          {/* 戻るボタン - 常に表示 */}
+          {onBack && (
+            <button 
+              onClick={onBack}
+              className="text-gray-600 hover:text-gray-900 hover:bg-gray-200 rounded-md p-1.5 mr-2 transition-colors duration-150 flex items-center"
+              title="最初の画面に戻る"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+            </button>
+          )}
+          <h2 className="text-gray-900 font-medium text-sm">要件定義書プレビュー</h2>
+        </div>
         <button
           onClick={onDownload}
-          className="bg-blue-50 hover:bg-blue-100 text-blue-600 font-medium py-2 px-4 rounded-md transition-colors duration-200 flex items-center"
+          className="inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-md border border-gray-300 bg-white hover:bg-gray-50 transition-colors duration-150 text-gray-700"
         >
-          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+          <svg className="w-4 h-4 mr-1.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
           </svg>
-          MDファイルダウンロード
+          ダウンロード
         </button>
       </div>
       
-      {/* 戻るボタンをプレビューの外に配置 */}
-      {onBack && (
-        <div className="absolute top-4 left-4 z-10">
-          <button 
-            onClick={onBack}
-            className="text-gray-500 hover:text-gray-700 flex items-center bg-white hover:bg-gray-50 shadow-sm rounded-full p-2 transition-colors duration-200"
-            title="最初の画面に戻る"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-            </svg>
-          </button>
-        </div>
-      )}
-      
-      <div className="flex-1 p-4 overflow-auto max-h-[500px]">
+      {/* GitHub風のマークダウンコンテンツエリア */}
+      <div className="flex-1 p-5 overflow-auto max-h-[600px] bg-white">
         <div 
-          className="prose max-w-none" 
+          className="prose prose-gray max-w-none markdown-body" 
           dangerouslySetInnerHTML={{ __html: html }}
+          style={{
+            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif',
+            fontSize: '14px',
+            lineHeight: '1.5',
+            color: '#24292e'
+          }}
         />
       </div>
     </div>

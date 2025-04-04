@@ -3,7 +3,7 @@
 // 注意: このファイルはgenerate-requirementsとcheck-statusの両方の機能を含む統合ファイルです
 
 // Claude API設定
-const API_MODEL = "claude-3-sonnet-20240229";
+const API_MODEL = "claude-3-7-sonnet-20250219";
 const MAX_TOKENS = 4000;
 
 // 環境変数から直接APIキーを取得（Netlify管理画面で設定）
