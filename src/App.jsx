@@ -160,13 +160,18 @@ function App() {
     try {
       addLog(`ステータス確認中: セッションID ${sessionId}`);
       
-      const statusUrl = '/.netlify/functions/check-status';
+      // ステータス確認用の関数を変更（統合された関数を使用）
+      const statusUrl = '/.netlify/functions/generate-requirements';
       const response = await fetch(statusUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ sessionId })
+        body: JSON.stringify({ 
+          sessionId,
+          checkStatus: true, // ステータス確認フラグを追加
+          messages: [] // 空のメッセージ配列を追加（APIが必要とするため）
+        })
       });
       
       if (!response.ok) {

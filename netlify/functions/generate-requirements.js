@@ -134,6 +134,8 @@ exports.handler = async (event, context) => {
   log(`リクエスト受信: パス=${event.path}, メソッド=${event.httpMethod}, ヘッダー=${JSON.stringify(event.headers)}`);
   
   try {
+    let isCheckStatus = false;
+    
     // パスからどの機能が呼び出されているかを判断
     const pathParts = event.path.split('/');
     const functionName = pathParts[pathParts.length - 1];
@@ -141,6 +143,25 @@ exports.handler = async (event, context) => {
     
     // check-statusへのリクエストを処理
     if (functionName === 'check-status') {
+      log('パス名からステータス確認関数を実行します');
+      isCheckStatus = true;
+    }
+    
+    // リクエストボディに checkStatus フラグがあるか判断する
+    if (event.httpMethod === 'POST' && event.body) {
+      try {
+        const body = JSON.parse(event.body);
+        if (body.checkStatus === true) {
+          log('リクエスト本文のcheckStatusフラグからステータス確認関数を実行します');
+          isCheckStatus = true;
+        }
+      } catch (parseError) {
+        log(`リクエストボディのパースエラー: ${parseError.message}`, 'error');
+      }
+    }
+    
+    // ステータス確認関数の実行
+    if (isCheckStatus) {
       log('ステータス確認関数を実行します');
       return await handleCheckStatus(event, context);
     }
