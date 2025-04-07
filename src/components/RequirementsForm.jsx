@@ -53,10 +53,10 @@ const RequirementsForm = ({ onSubmit }) => {
   };
 
   return (
-    <div className="border border-gray-200 rounded-md bg-white overflow-hidden">
-      <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
-        <h2 className="text-base font-medium text-gray-900">要件定義の基本情報を入力</h2>
-        <p className="mt-1 text-xs text-gray-600">こちらで要件を詳しく伝えると自動的に要件定義書に反映されます</p>
+    <div className="border border-gray-200 rounded-lg bg-white overflow-hidden shadow-sm">
+      <div className="bg-gray-50 px-5 py-4 border-b border-gray-200">
+        <h2 className="text-lg font-bold text-gray-900">要件定義の基本情報を入力</h2>
+        <p className="mt-1 text-sm text-gray-600">こちらで要件を詳しく伝えると自動的に要件定義書に反映されます</p>
       </div>
       <div className="p-5">
         <form onSubmit={handleSubmit}>
@@ -70,7 +70,7 @@ const RequirementsForm = ({ onSubmit }) => {
                 name="projectName"
                 value={formData.projectName}
                 onChange={handleChange}
-                className={`block w-full px-3 py-2 text-sm border rounded-md shadow-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none ${errors.projectName ? 'border-red-500' : 'border-gray-300'}`}
+                className={`block w-full px-4 py-3 text-base border rounded-xl shadow-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none transition-all duration-200 ${errors.projectName ? 'border-red-500' : 'border-gray-300'}`}
                 placeholder="例: 顧客管理システム"
               />
               {errors.projectName && <p className="text-red-600 text-xs mt-1">{errors.projectName}</p>}
@@ -84,7 +84,7 @@ const RequirementsForm = ({ onSubmit }) => {
                 name="projectOverview"
                 value={formData.projectOverview}
                 onChange={handleChange}
-                className={`block w-full px-3 py-2 text-sm border rounded-md shadow-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none ${errors.projectOverview ? 'border-red-500' : 'border-gray-300'}`}
+                className={`block w-full px-4 py-3 text-base border rounded-xl shadow-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none transition-all duration-200 ${errors.projectOverview ? 'border-red-500' : 'border-gray-300'}`}
                 rows="4"
                 placeholder="プロジェクトの目的や背景を記述してください"
               ></textarea>
@@ -100,7 +100,7 @@ const RequirementsForm = ({ onSubmit }) => {
                 name="targetUsers"
                 value={formData.targetUsers}
                 onChange={handleChange}
-                className={`block w-full px-3 py-2 text-sm border rounded-md shadow-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none ${errors.targetUsers ? 'border-red-500' : 'border-gray-300'}`}
+                className={`block w-full px-4 py-3 text-base border rounded-xl shadow-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none transition-all duration-200 ${errors.targetUsers ? 'border-red-500' : 'border-gray-300'}`}
                 placeholder="例: 株式会社○○、▲▲工業など"
               />
               {errors.targetUsers && <p className="text-red-600 text-xs mt-1">{errors.targetUsers}</p>}
@@ -114,7 +114,7 @@ const RequirementsForm = ({ onSubmit }) => {
                 name="mainFeatures"
                 value={formData.mainFeatures}
                 onChange={handleChange}
-                className={`block w-full px-3 py-2 text-sm border rounded-md shadow-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none ${errors.mainFeatures ? 'border-red-500' : 'border-gray-300'}`}
+                className={`block w-full px-4 py-3 text-base border rounded-xl shadow-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none transition-all duration-200 ${errors.mainFeatures ? 'border-red-500' : 'border-gray-300'}`}
                 rows="5"
                 placeholder="実装する主な機能を箇条書きで記述してください"
               ></textarea>
@@ -129,7 +129,7 @@ const RequirementsForm = ({ onSubmit }) => {
                 name="constraints"
                 value={formData.constraints}
                 onChange={handleChange}
-                className="block w-full px-3 py-2 text-sm border rounded-md shadow-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none border-gray-300"
+                className="block w-full px-4 py-3 text-base border rounded-xl shadow-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none border-gray-300 transition-all duration-200"
                 rows="3"
                 placeholder="予算、技術的制約、納期などの条件があれば記述してください"
               ></textarea>
@@ -143,7 +143,7 @@ const RequirementsForm = ({ onSubmit }) => {
                 name="timeline"
                 value={formData.timeline}
                 onChange={handleChange}
-                className="block w-full px-3 py-2 text-sm border rounded-md shadow-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none border-gray-300"
+                className="block w-full px-4 py-3 text-base border rounded-xl shadow-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none border-gray-300 transition-all duration-200"
                 rows="3"
                 placeholder="例: 2025年6月末までに第一フェーズをリリース"
               ></textarea>
@@ -155,9 +155,12 @@ const RequirementsForm = ({ onSubmit }) => {
               </p>
               <button
                 type="submit"
-                className="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-150"
+                className="px-5 py-3 text-base font-medium text-white bg-[#007a5a] hover:bg-[#006349] rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#007a5a] transition-all duration-200 flex items-center space-x-2"
               >
-                要件定義書を生成
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.707l-3-3a1 1 0 00-1.414 0l-3 3a1 1 0 001.414 1.414L9 9.414V13a1 1 0 102 0V9.414l1.293 1.293a1 1 0 001.414-1.414z" clipRule="evenodd" />
+                </svg>
+                <span>要件定義書を生成</span>
               </button>
             </div>
           </div>
