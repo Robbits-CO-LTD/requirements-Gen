@@ -16,10 +16,10 @@ const ChatInterface = ({ messages, onSend, loading, error }) => {
     <div className="bg-white rounded-lg shadow-md h-full flex flex-col">
       <div className="px-6 py-5 border-b">
         <h2 className="text-lg font-bold text-gray-900">要件の詳細調整</h2>
-        <p className="mt-2 text-sm text-gray-600">こちらで要件を詳しく伝えると自動的に要件定義書に反映されます</p>
+        <p className="mt-2 text-sm text-gray-600 max-w-3xl">こちらで要件を詳しく伝えると自動的に要件定義書に反映されます</p>
       </div>
       
-      <div className="flex-1 px-6 py-5 overflow-auto flex flex-col space-y-4 max-h-[450px]">
+      <div className="flex-1 px-6 py-5 overflow-auto flex flex-col space-y-4 max-h-[450px] max-w-5xl mx-auto w-full">
         {messages.map((msg, index) => (
           <div 
             key={index} 
@@ -40,7 +40,7 @@ const ChatInterface = ({ messages, onSend, loading, error }) => {
         
         {/* ローディングインジケーター */}
         {loading && (
-          <div className="loading-indicator self-start flex items-center space-x-3 p-4 bg-gray-50 rounded-lg shadow-sm border border-gray-100">
+          <div className="loading-indicator self-start flex items-center space-x-3 p-4 bg-gray-50 rounded-lg shadow-sm border border-gray-100 max-w-md">
             <div className="animate-pulse flex space-x-1.5">
               <div className="h-3 w-3 bg-[#1264a3] rounded-full"></div>
               <div className="h-3 w-3 bg-[#1264a3] rounded-full animation-delay-200"></div>
@@ -52,7 +52,7 @@ const ChatInterface = ({ messages, onSend, loading, error }) => {
       </div>
       
       <div className="px-6 py-5 border-t">
-        <form onSubmit={handleSubmit} className="flex items-center gap-3">
+        <form onSubmit={handleSubmit} className="flex items-center gap-3 max-w-3xl mx-auto">
           <div className="flex-1">
             <input
               type="text"
@@ -65,7 +65,7 @@ const ChatInterface = ({ messages, onSend, loading, error }) => {
           </div>
           <button
             type="submit"
-            className={`${loading ? 'bg-gray-300 cursor-not-allowed' : 'bg-[#1264a3] hover:bg-[#0b4f82]'} text-white px-5 py-3.5 rounded-xl transition-all duration-150 shadow-sm flex items-center justify-center min-w-[80px]`}
+            className={`${loading ? 'bg-gray-300 cursor-not-allowed' : 'bg-[#1264a3] hover:bg-[#0b4f82]'} text-white px-6 py-3.5 rounded-xl transition-all duration-150 shadow flex items-center justify-center min-w-[100px] font-medium`}
             disabled={loading}
           >
             {loading ? (
@@ -89,7 +89,7 @@ const ChatInterface = ({ messages, onSend, loading, error }) => {
         
         {/* APIエラーメッセージ (チャットメッセージと別に表示する場合) */}
         {error && !messages.some(msg => msg.role === 'system' && msg.content.includes('エラー')) && (
-          <div className="mt-4 p-4 bg-red-50 border border-red-200 text-red-800 rounded-lg text-sm shadow-sm">
+          <div className="mt-4 p-4 bg-red-50 border border-red-200 text-red-800 rounded-lg text-sm shadow-sm max-w-3xl mx-auto">
             <div className="flex items-center">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-3 text-red-500" viewBox="0 0 20 20" fill="currentColor">
                 <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
