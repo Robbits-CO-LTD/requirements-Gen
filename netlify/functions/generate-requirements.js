@@ -3,7 +3,7 @@
 // 注意: このファイルはgenerate-requirementsとcheck-statusの両方の機能を含む統合ファイルです
 
 // Claude API設定
-const API_MODEL = "claude-3-7-sonnet-20250219";
+const API_MODEL = "claude-3-7-sonnet-20250219"; // 要件通りのモデルを使用
 const MAX_TOKENS = 4000;
 
 // 環境変数から直接APIキーを取得（Netlify管理画面で設定）
@@ -372,8 +372,8 @@ async function handleGenerateRequirements(event, context) {
             headers: {
               'Content-Type': 'application/json',
               'x-api-key': ANTHROPIC_API_KEY,
-              'anthropic-version': '2023-06-01',
-              'anthropic-beta': 'claude-3-7-20250423'
+              'anthropic-version': '2023-06-01'
+              // betaヘッダーは正しい設定があるまで一時削除
             },
             body: JSON.stringify({
               model: API_MODEL,
@@ -386,13 +386,12 @@ async function handleGenerateRequirements(event, context) {
                 }
               ],
               temperature: 0.7,
-              // トラブルシューティング用の追加パラメーター
-              stream: false,
-              metadata: {
-                user_id: sessionId
-              }
+              stream: false
+              // メタデータはエラーの原因になる可能性があるため削除
             })
           });
+          
+          log(`APIリクエスト詳細: モデル=${API_MODEL}, ヘッダー=[Content-Type, x-api-key, anthropic-version]`);
           
           log(`Claude APIリクエスト送信: モデル=${API_MODEL}, セッションID=${sessionId}`);
           
