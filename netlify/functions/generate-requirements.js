@@ -3,7 +3,7 @@
 // 注意: このファイルはgenerate-requirementsとcheck-statusの両方の機能を含む統合ファイルです
 
 // Claude API設定
-const API_MODEL = "claude-3-sonnet-20240229";
+const API_MODEL = "claude-3-7-sonnet-20250219";
 const MAX_TOKENS = 4000;
 
 // 環境変数から直接APIキーを取得（Netlify管理画面で設定）
@@ -372,7 +372,8 @@ async function handleGenerateRequirements(event, context) {
             headers: {
               'Content-Type': 'application/json',
               'x-api-key': ANTHROPIC_API_KEY,
-              'anthropic-version': '2023-06-01'
+              'anthropic-version': '2023-06-01',
+              'anthropic-beta': 'claude-3-7-20250423'
             },
             body: JSON.stringify({
               model: API_MODEL,
@@ -384,9 +385,16 @@ async function handleGenerateRequirements(event, context) {
                   content: prompt
                 }
               ],
-              temperature: 0.7
+              temperature: 0.7,
+              // トラブルシューティング用の追加パラメーター
+              stream: false,
+              metadata: {
+                user_id: sessionId
+              }
             })
           });
+          
+          log(`Claude APIリクエスト送信: モデル=${API_MODEL}, セッションID=${sessionId}`);
           
           // エラーチェック
           if (!apiResponse.ok) {
@@ -415,9 +423,19 @@ async function handleGenerateRequirements(event, context) {
             // APIレスポンスを処理
             const data = await apiResponse.json();
             log('バックグラウンド処理 Claude API応答受信完了');
+            log(`レスポンスデータ構造: ${JSON.stringify(Object.keys(data))}`);
             
             // APIレスポンスからマークダウン部分を抽出
-            const generatedMarkdown = data.content?.[0]?.text || '';
+            // Claude 3.7のレスポンス形式に対応
+            let generatedMarkdown = '';
+            if (data.content && Array.isArray(data.content)) {
+              generatedMarkdown = data.content[0]?.text || '';
+              log(`Claude 3.7形式レスポンスを検出: テキスト長=${generatedMarkdown.length}`);
+            } else if (data.completion) {
+              // 旧形式の場合のフォールバック
+              generatedMarkdown = data.completion;
+              log(`旧形式レスポンスを検出: テキスト長=${generatedMarkdown.length}`);
+            }
             log(`バックグラウンド処理完了: マークダウン生成成功 (長さ: ${generatedMarkdown.length})`);
             
             // 結果をストレージに保存
