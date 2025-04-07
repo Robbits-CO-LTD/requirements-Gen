@@ -259,7 +259,7 @@ function App() {
       
       // ポーリング回数を追跡するカウンター
       let pollCount = 0;
-      const maxPolls = 50; // 最大ポーリング回数（安全装置）
+      const maxPolls = 100; // 最大ポーリング回数（安全装置）
       
       // 3秒ごとに状態確認
       const interval = setInterval(async () => {
