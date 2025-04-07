@@ -29,8 +29,8 @@ const MarkdownPreview = ({ content, onDownload, onBack }) => {
       )}
 
       {/* GitHub風ヘッダー */}
-      <div className="bg-gray-50 px-6 py-4 border-b border-gray-200 flex justify-between items-center sticky top-0">
-        <h2 className="text-gray-900 font-bold text-lg">要件定義書プレビュー</h2>
+      <div className="bg-gray-50 px-8 py-4 border-b border-gray-200 flex justify-between items-center sticky top-0">
+        <h2 className="text-gray-900 font-bold text-lg pl-2">要件定義書プレビュー</h2>
         <button
           onClick={onDownload}
           className="inline-flex items-center px-4 py-2.5 text-sm font-medium rounded-lg border border-gray-300 bg-white hover:bg-gray-50 transition-colors duration-150 text-gray-700 shadow-sm"

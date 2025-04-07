@@ -14,9 +14,9 @@ const ChatInterface = ({ messages, onSend, loading, error }) => {
 
   return (
     <div className="bg-white rounded-lg shadow-md h-full flex flex-col">
-      <div className="px-6 py-5 border-b">
-        <h2 className="text-lg font-bold text-gray-900">要件の詳細調整</h2>
-        <p className="mt-2 text-sm text-gray-600 max-w-3xl">こちらで要件を詳しく伝えると自動的に要件定義書に反映されます</p>
+      <div className="px-8 py-5 border-b">
+        <h2 className="text-lg font-bold text-gray-900 pl-2">要件の詳細調整</h2>
+        <p className="mt-2 text-sm text-gray-600 max-w-3xl pl-2">こちらで要件を詳しく伝えると自動的に要件定義書に反映されます</p>
       </div>
       
       <div className="flex-1 px-6 py-5 overflow-auto flex flex-col space-y-4 max-h-[450px] max-w-5xl mx-auto w-full">
@@ -58,7 +58,7 @@ const ChatInterface = ({ messages, onSend, loading, error }) => {
               type="text"
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              className="w-full border border-gray-200 rounded-xl px-4 py-3.5 text-base focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-[#1264a3] shadow-sm transition-all duration-200"
+              className="w-full border border-gray-200 rounded-xl px-4 py-3.5 text-base focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-[#1264a3] shadow-sm transition-all duration-200 h-[54px]"
               placeholder="追加の要件や詳細を入力..."
               disabled={loading}
             />
