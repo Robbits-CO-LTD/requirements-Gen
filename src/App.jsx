@@ -448,21 +448,19 @@ ${data.timeline}
             </div>
           </div>
           
-          {/* ログ表示エリア - GitHub風 */}
-          <div className="mt-8 border border-gray-200 rounded-md overflow-hidden bg-white">
-            <div className="bg-gray-50 px-4 py-2 border-b border-gray-200 flex items-center">
-              <svg className="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <h3 className="text-sm font-medium text-gray-700">API通信ログ</h3>
+          {/* ログ表示エリア - 整理されたGitHub風 */}
+          <div className="mt-6 border border-gray-200 rounded-md overflow-hidden bg-white shadow-sm">
+            <div className="bg-gray-50 px-4 py-2 border-b border-gray-200">
+              <h3 className="text-sm font-medium text-gray-700">処理ログ</h3>
             </div>
-            <div className="bg-gray-50 p-3 font-mono text-xs leading-relaxed overflow-auto max-h-36 text-gray-800 border-gray-100">
+            <div className="bg-white p-3 font-mono text-xs leading-relaxed overflow-auto max-h-40 text-gray-700 border-t border-gray-100">
               {logs.length === 0 ? (
-                <p>ログはまだありません</p>
+                <p className="text-gray-500 italic">処理が開始されると、ここにログが表示されます</p>
               ) : (
                 logs.map((log, index) => (
-                  <div key={index} className="mb-1">
-                    <span className="text-gray-400">[{log.time}]</span> {log.message}
+                  <div key={index} className="mb-1 pb-1">
+                    <span className="text-gray-400 mr-1">[{log.time}]</span> 
+                    <span>{log.message}</span>
                   </div>
                 ))
               )}
