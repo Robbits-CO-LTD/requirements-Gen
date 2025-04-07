@@ -95,14 +95,14 @@ const RequirementsForm = ({ onSubmit }) => {
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 客先 <span className="text-red-500">*</span>
               </label>
-              <textarea
+              <input
+                type="text"
                 name="targetUsers"
                 value={formData.targetUsers}
                 onChange={handleChange}
                 className={`block w-full px-3 py-2 text-sm border rounded-md shadow-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none ${errors.targetUsers ? 'border-red-500' : 'border-gray-300'}`}
-                rows="3"
                 placeholder="例: 株式会社○○、▲▲工業など"
-              ></textarea>
+              />
               {errors.targetUsers && <p className="text-red-600 text-xs mt-1">{errors.targetUsers}</p>}
             </div>
             
